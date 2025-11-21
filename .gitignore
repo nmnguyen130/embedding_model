@@ -18,7 +18,7 @@ logs/
 .vscode/
 .idea/
 
-data/
+/data/
 notebooks/
 
 Development_Plan.md
