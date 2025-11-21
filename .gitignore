@@ -1,0 +1,25 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# Data and checkpoints
+runs/
+outputs/
+checkpoints/
+logs/
+
+# IDE settings
+.vscode/
+.idea/
+
+data/
+notebooks/
+
+Development_Plan.md
+NDRFormer.md
