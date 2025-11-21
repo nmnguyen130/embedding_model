@@ -91,6 +91,10 @@ def set_seed(seed: int):
     """Set random seed for reproducibility."""
     import random
     import numpy as np
+    import os
+    
+    # Fix tokenizers parallelism warning
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     
     random.seed(seed)
     np.random.seed(seed)

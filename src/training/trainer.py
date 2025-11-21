@@ -6,7 +6,7 @@ Optimized for Google Colab T4 GPU.
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from torch.cuda.amp import autocast, GradScaler
+# Fixed deprecation warnings - use torch.amp instead
 from typing import Optional, Dict, Any
 from tqdm import tqdm
 import os
@@ -75,7 +75,7 @@ class EmbeddingTrainer:
         self.save_total_limit = save_total_limit
         
         # Mixed precision training
-        self.scaler = GradScaler() if use_fp16 else None
+        self.scaler = torch.amp.GradScaler('cuda') if use_fp16 else None
         
         # Training state
         self.global_step = 0
@@ -104,7 +104,7 @@ class EmbeddingTrainer:
         
         # Forward pass with mixed precision
         if self.use_fp16:
-            with autocast():
+            with torch.amp.autocast('cuda', enabled=True):
                 anchor_embeddings = self.model(anchor_input_ids, anchor_attention_mask)
                 positive_embeddings = self.model(positive_input_ids, positive_attention_mask)
                 loss = self.loss_fn(anchor_embeddings, positive_embeddings)
