@@ -71,7 +71,10 @@ def parse_args():
     parser.add_argument("--use-wikipedia", action="store_true", default=True)
     parser.add_argument("--use-snli", action="store_true", default=True)
     parser.add_argument("--use-quora", action="store_true", default=False)
-    parser.add_argument("--max-wiki-samples", type=int, default=100000)
+    parser.add_argument("--max-wiki-samples", type=int, default=100000,
+                        help="Max Wikipedia samples for triplet generation")
+    parser.add_argument("--tokenizer-samples", type=int, default=300000,
+                        help="Max samples for tokenizer training (default: 200K for quality)")
     
     # Resume training
     parser.add_argument("--resume-from", type=str, default=None,
@@ -105,6 +108,7 @@ def main():
         print("="*60)
         print("QUICK START MODE - Using small dataset for testing")
         print("="*60)
+        args.tokenizer_samples = 20000  # 20K for quick tokenizer
         args.max_wiki_samples = 10000
         args.num_epochs = 2
         args.max_steps = 1000
@@ -134,6 +138,7 @@ def main():
     
     if not Path(tokenizer_path).exists():
         print(f"Training tokenizer (vocab size: {args.vocab_size})...")
+        print(f"Using {args.tokenizer_samples:,} samples for quality vocab...")
         
         # Download small dataset for tokenizer training
         datasets_for_tokenizer = ["wikipedia", "snli"]
@@ -142,7 +147,7 @@ def main():
             data_dir=args.data_dir,
             output_path=tokenizer_path,
             vocab_size=args.vocab_size,
-            max_samples=args.max_wiki_samples if args.quick_start else None
+            max_samples=args.tokenizer_samples
         )
     else:
         print(f"Loading tokenizer from {tokenizer_path}")
