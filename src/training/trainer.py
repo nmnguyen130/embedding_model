@@ -349,6 +349,7 @@ class EmbeddingTrainer:
                         })
                     
                     # Evaluation
+                    is_best = False  # Initialize here to avoid UnboundLocalError
                     if self.eval_dataloader is not None and self.global_step % self.eval_steps == 0:
                         eval_loss = self.evaluate()
                         print(f"\nStep {self.global_step}: Eval loss = {eval_loss:.4f}")
@@ -364,10 +365,11 @@ class EmbeddingTrainer:
                             self.best_eval_loss = eval_loss
                             print(f"New best model! Eval loss: {eval_loss:.4f}")
                     
-                    # Save checkpoint
+                    # Save checkpoint (ALWAYS runs at save_steps interval)
                     if self.global_step % self.save_steps == 0:
                         checkpoint_dir = self.output_dir / f"checkpoint-{self.global_step}"
-                        self.save_checkpoint(checkpoint_dir, is_best=False)
+                        self.save_checkpoint(checkpoint_dir, is_best=is_best)
+                        print(f"Checkpoint saved at step {self.global_step}")
                     
                     # Check max steps
                     if max_steps is not None and self.global_step >= max_steps:

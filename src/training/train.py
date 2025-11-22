@@ -302,7 +302,7 @@ def main():
         eval_dataloader=None,  # Can add validation set later
         output_dir=args.output_dir,
         logging_steps=100,
-        save_steps=5000,
+        save_steps=2500,  # Save every 2500 steps
         eval_steps=2500,
         max_grad_norm=1.0,
         use_fp16=args.fp16,
