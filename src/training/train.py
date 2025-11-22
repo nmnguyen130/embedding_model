@@ -82,7 +82,8 @@ def parse_args():
     
     # Misc
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument("--num-workers", type=int, default=2,
+                        help="DataLoader workers (0=main process, safer for Windows)")
     
     return parser.parse_args()
 
