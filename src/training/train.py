@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.model import ModelConfig, TrainingConfig, create_model
 from src.tokenizer import TextTokenizer, train_tokenizer_on_datasets
-from src.data import DatasetDownloader, TripletGenerator, InBatchNegativesDataset, create_dataloader
+from src.data import DatasetDownloader, TripletGenerator, InBatchNegativesDataset, create_dataloader, load_triplets_with_split
 from src.training.losses import create_loss_function
 from src.training.optimizer import create_optimizer, create_scheduler
 from src.training.trainer import EmbeddingTrainer
@@ -205,8 +205,16 @@ def main():
     print("STEP 4: Create DataLoaders")
     print("="*60)
     
-    train_dataset = InBatchNegativesDataset(
+    # Split triplets into train and validation (1% for val)
+    train_triplets, val_triplets = load_triplets_with_split(
         triplets_file=triplets_file,
+        val_size=0.01,  # 1% validation
+        random_state=args.seed
+    )
+    
+    # Create train dataset
+    train_dataset = InBatchNegativesDataset(
+        triplets=train_triplets,
         tokenizer=tokenizer,
         max_length=512
     )
@@ -219,8 +227,25 @@ def main():
         pin_memory=True
     )
     
-    print(f"Train dataset: {len(train_dataset)} pairs")
-    print(f"Train batches: {len(train_dataloader)}")
+    # Create validation dataset
+    val_dataset = InBatchNegativesDataset(
+        triplets=val_triplets,
+        tokenizer=tokenizer,
+        max_length=512
+    )
+    
+    val_dataloader = create_dataloader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,  # No shuffle for validation
+        num_workers=args.num_workers,
+        pin_memory=True
+    )
+    
+    print(f"Train dataset: {len(train_dataset):,} pairs")
+    print(f"Train batches: {len(train_dataloader):,}")
+    print(f"Validation dataset: {len(val_dataset):,} pairs")
+    print(f"Validation batches: {len(val_dataloader):,}")
     
     # Step 5: Create model
     print("\n" + "="*60)
@@ -300,11 +325,11 @@ def main():
         loss_fn=loss_fn,
         device=device,
         scheduler=scheduler,
-        eval_dataloader=None,  # Can add validation set later
+        eval_dataloader=val_dataloader,  # Enable validation evaluation
         output_dir=args.output_dir,
         logging_steps=100,
-        save_steps=100,  # Save every 100 steps
-        eval_steps=100,
+        save_steps=2500,  # Regular checkpoint every 2500 steps
+        eval_steps=2500,   # Eval frequency (if eval_dataloader is set)
         max_grad_norm=1.0,
         use_fp16=args.fp16,
         gradient_accumulation_steps=args.grad_accum_steps,

@@ -4,9 +4,47 @@ PyTorch Dataset and DataLoader for training.
 
 import torch
 from torch.utils.data import Dataset, DataLoader
-from typing import List, Dict, Optional, Callable
+from typing import List, Dict, Optional, Callable, Tuple
 import json
 import random
+from sklearn.model_selection import train_test_split
+
+
+def load_triplets_with_split(
+    triplets_file: str,
+    val_size: float = 0.01,
+    random_state: int = 42
+) -> Tuple[List[Dict], List[Dict]]:
+    """
+    Load triplets from file and split into train/validation sets.
+    
+    Args:
+        triplets_file: Path to JSONL file with triplets
+        val_size: Fraction of data to use for validation (default: 0.01 = 1%)
+        random_state: Random seed for reproducibility
+    
+    Returns:
+        Tuple of (train_triplets, val_triplets)
+    """
+    # Load all triplets
+    triplets = []
+    with open(triplets_file, "r", encoding="utf-8") as f:
+        for line in f:
+            triplets.append(json.loads(line))
+    
+    print(f"Loaded {len(triplets):,} total triplets from {triplets_file}")
+    
+    # Split into train and validation
+    train_triplets, val_triplets = train_test_split(
+        triplets,
+        test_size=val_size,
+        random_state=random_state,
+        shuffle=True
+    )
+    
+    print(f"Split: {len(train_triplets):,} train, {len(val_triplets):,} val ({val_size*100:.1f}%)")
+    
+    return train_triplets, val_triplets
 
 
 class TripletDataset(Dataset):
@@ -14,8 +52,9 @@ class TripletDataset(Dataset):
     
     def __init__(
         self,
-        triplets_file: str,
-        tokenizer,
+        triplets_file: Optional[str] = None,
+        triplets: Optional[List[Dict]] = None,
+        tokenizer = None,
         max_length: int = 512,
         use_hard_negatives: bool = False
     ):
@@ -23,7 +62,8 @@ class TripletDataset(Dataset):
         Initialize triplet dataset.
         
         Args:
-            triplets_file: Path to JSONL file with triplets
+            triplets_file: Path to JSONL file with triplets (optional if triplets provided)
+            triplets: Pre-loaded triplets list (optional if triplets_file provided)
             tokenizer: Text tokenizer
             max_length: Maximum sequence length
             use_hard_negatives: Whether dataset includes hard negatives
@@ -32,13 +72,18 @@ class TripletDataset(Dataset):
         self.max_length = max_length
         self.use_hard_negatives = use_hard_negatives
         
-        # Load triplets
-        self.triplets = []
-        with open(triplets_file, "r", encoding="utf-8") as f:
-            for line in f:
-                self.triplets.append(json.loads(line))
-        
-        print(f"Loaded {len(self.triplets)} triplets from {triplets_file}")
+        # Load triplets from file or use provided list
+        if triplets is not None:
+            self.triplets = triplets
+            print(f"Loaded {len(self.triplets):,} triplets from provided list")
+        elif triplets_file is not None:
+            self.triplets = []
+            with open(triplets_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    self.triplets.append(json.loads(line))
+            print(f"Loaded {len(self.triplets):,} triplets from {triplets_file}")
+        else:
+            raise ValueError("Either triplets_file or triplets must be provided")
         
         # Collect all texts for random negative sampling
         self.all_texts = []
@@ -175,15 +220,17 @@ class InBatchNegativesDataset(Dataset):
     
     def __init__(
         self,
-        triplets_file: str,
-        tokenizer,
+        triplets_file: Optional[str] = None,
+        triplets: Optional[List[Dict]] = None,
+        tokenizer = None,
         max_length: int = 512
     ):
         """
         Initialize dataset.
         
         Args:
-            triplets_file: Path to JSONL file with triplets
+            triplets_file: Path to JSONL file with triplets (optional if triplets provided)
+            triplets: Pre-loaded triplets list (optional if triplets_file provided)
             tokenizer: Text tokenizer
             max_length: Maximum sequence length
         """
@@ -192,15 +239,27 @@ class InBatchNegativesDataset(Dataset):
         
         # Load triplets (but we'll only use anchor and positive)
         self.pairs = []
-        with open(triplets_file, "r", encoding="utf-8") as f:
-            for line in f:
-                triplet = json.loads(line)
+        
+        if triplets is not None:
+            # Use provided triplets
+            for triplet in triplets:
                 self.pairs.append({
                     "anchor": triplet["anchor"],
                     "positive": triplet["positive"]
                 })
-        
-        print(f"Loaded {len(self.pairs)} pairs from {triplets_file}")
+            print(f"Loaded {len(self.pairs):,} pairs from provided list")
+        elif triplets_file is not None:
+            # Load from file
+            with open(triplets_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    triplet = json.loads(line)
+                    self.pairs.append({
+                        "anchor": triplet["anchor"],
+                        "positive": triplet["positive"]
+                    })
+            print(f"Loaded {len(self.pairs):,} pairs from {triplets_file}")
+        else:
+            raise ValueError("Either triplets_file or triplets must be provided")
     
     def __len__(self) -> int:
         return len(self.pairs)

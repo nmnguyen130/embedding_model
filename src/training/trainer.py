@@ -172,7 +172,7 @@ class EmbeddingTrainer:
         
         # Forward pass
         if self.use_fp16:
-            with autocast():
+            with torch.amp.autocast('cuda', enabled=True):
                 anchor_embeddings = self.model(anchor_input_ids, anchor_attention_mask)
                 positive_embeddings = self.model(positive_input_ids, positive_attention_mask)
                 loss = self.loss_fn(anchor_embeddings, positive_embeddings)

@@ -3,7 +3,7 @@
 from .dataset_downloader import DatasetDownloader
 from .preprocessor import TextPreprocessor, deduplicate_texts, filter_language
 from .triplet_generator import TripletGenerator, create_training_triplets
-from .dataset import TripletDataset, PairDataset, InBatchNegativesDataset, create_dataloader
+from .dataset import TripletDataset, PairDataset, InBatchNegativesDataset, create_dataloader, load_triplets_with_split
 
 __all__ = [
     "DatasetDownloader",
@@ -16,4 +16,5 @@ __all__ = [
     "PairDataset",
     "InBatchNegativesDataset",
     "create_dataloader",
+    "load_triplets_with_split",
 ]
